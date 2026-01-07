@@ -489,14 +489,19 @@
     <section class="panel" style="--delay: 0.5s">
       <h2>Method and caveats</h2>
       <div class="stack">
-        <div class="note">This dataset counts public commits that include the message "Sure! Pl" and treats the earliest commit per repo as the repo start date.</div>
-        <div class="note">GitHub search is capped at 1000 results per query. The fetch script splits time windows to reduce missed results.</div>
-        <div class="note">Private repositories are not visible, so counts are a public-only proxy. Use the ratios as directional, not definitive.</div>
-        <div class="note">Project categories are inferred from repo topics, descriptions, and primary language. They are heuristic, not authoritative.</div>
+        <div class="note">Counts public GitHub commits containing the exact message <code>"Sure! Pl"</code>. The first such commit per repo is treated as the repo’s start date.</div>
+        <div class="note">GitHub search caps results at 1,000 per query, so the fetch script slices time windows to avoid dropping matches.</div>
+        <div class="note">Private repos aren’t visible. These numbers reflect public activity only—use ratios as directional signals, not ground truth.</div>
+        <div class="note">Project categories are guessed from repo topics, descriptions, and primary language. Heuristic vibes, not gospel.</div>
+        <div class="note">This is exploratory and probably flawed: commit messages get edited, GitHub search misses things, many repos are private, lots of people never make repos at all, and the source may not even be Cursor. Treat this as curiosity, not evidence.</div>
       </div>
     </section>
 
-    <div class="footer">Published: 2026-01-06</div>
+    <div class="footer">
+      Published: 2026-01-06 ·
+      Source code + data:
+      <a href="https://github.com/danielraffel/surepl" target="_blank" rel="noopener">surepl</a>
+    </div>
   </div>
 
   <script>
