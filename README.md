@@ -1,6 +1,6 @@
 # Sure! Pl Commit Census
 
-Small, exploratory dataset + dashboard tracking public commits that include the message "Sure! Pl".
+Small, exploratory dataset + dashboard tracking public commits that include the message "[Sure! Pl](https://github.com/search?q=%22Sure%21+Pl%22&type=commits&ref=advsearch)" on github. Visit the [surepl commit dashboard](https://www.generouscorp.com/surepl/).
 
 ## Quick start
 Open `index.html` in a browser to explore the latest dataset.
