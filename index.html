@@ -115,6 +115,10 @@
       animation: rise 0.6s ease-out both;
       animation-delay: var(--delay, 0s);
     }
+    .panel.align-start {
+      align-self: start;
+      align-content: start;
+    }
     .panel h2 {
       margin: 0;
       font-size: 18px;
@@ -174,20 +178,6 @@
     }
     button.ghost { background: transparent; }
     button:hover { transform: translateY(-1px); }
-    .dropzone {
-      border: 1px dashed rgba(27,27,27,0.2);
-      border-radius: 14px;
-      padding: 14px;
-      background: rgba(255,255,255,0.5);
-      text-align: center;
-      font-size: 13px;
-      color: var(--ink-muted);
-    }
-    .dropzone.dragover {
-      border-color: var(--accent);
-      background: rgba(255,122,26,0.12);
-      color: var(--ink);
-    }
     .pill {
       padding: 2px 8px;
       border-radius: 999px;
@@ -253,7 +243,6 @@
       border: 1px solid rgba(0,0,0,0.08);
       background: linear-gradient(180deg, var(--accent), #ffb04d);
       height: 0%;
-      transition: height 0.8s ease;
       cursor: pointer;
     }
     .bar.selected {
@@ -325,35 +314,16 @@
         <span class="pill" id="statusPill">Awaiting data</span>
       </div>
       <h1>Sure! Pl commit census</h1>
-      <p>Estimate public repo creation velocity by clustering commits that include the "Sure! Pl" message. Load a JSON export, slice the last 90 days, and explore who is shipping the most Cursor-born repos.</p>
+      <p>There has been a bug in Cursor where initial repos using the AI commit feature post with the message "Sure! Pl". This is just a survey of that data to get a sense of what folks are doing with Cursor.</p>
       <div class="meta">
         <div>Source: <strong id="metaSource">Local file</strong></div>
         <div>Query: <strong id="metaQuery">"Sure! Pl"</strong></div>
         <div>Collected: <strong id="metaCollected">-</strong></div>
+        <div class="status" id="statusText">No dataset loaded yet.</div>
       </div>
     </section>
 
     <div class="grid">
-      <section class="panel" style="--delay: 0.1s">
-        <h2>Load data</h2>
-        <div class="dropzone" id="dropzone">Drop a JSON file here or use the picker below.</div>
-        <div class="row">
-          <div class="grow">
-            <input type="file" id="fileInput" accept="application/json,.json,.ndjson" />
-          </div>
-          <button class="secondary" id="loadSampleBtn">Use sample</button>
-        </div>
-        <div class="stack">
-          <label for="pasteInput">Or paste JSON</label>
-          <textarea id="pasteInput" placeholder="Paste JSON or NDJSON"></textarea>
-          <div class="row">
-            <button class="primary" id="parseBtn">Parse pasted data</button>
-            <button class="ghost" id="clearBtn">Clear</button>
-          </div>
-        </div>
-        <div class="status" id="statusText">No dataset loaded yet.</div>
-      </section>
-
       <section class="panel" style="--delay: 0.2s">
         <h2>Filters</h2>
         <div class="row">
@@ -412,7 +382,7 @@
             <strong id="statRange">-</strong>
           </div>
         </div>
-        <div class="note" id="rangeNote">Load data to see a 90-day view.</div>
+        <div class="note" id="rangeNote">Data loads automatically. Adjust filters to explore.</div>
       </section>
 
       <section class="panel" style="--delay: 0.35s">
@@ -427,7 +397,7 @@
             <span id="axisEnd">-</span>
           </div>
         </div>
-        <div class="note">Click a bar to drill into that bucket.</div>
+        <div class="note" id="chartNote">Hover or tap a bar to see that bucket.</div>
       </section>
 
       <section class="panel" style="--delay: 0.4s">
@@ -450,6 +420,28 @@
       </section>
 
       <section class="panel" style="--delay: 0.42s">
+        <div class="chart-header">
+          <h2>Bucket detail</h2>
+          <span class="pill" id="bucketPill">None</span>
+        </div>
+        <div class="table">
+          <table>
+            <thead>
+              <tr>
+                <th>Repo</th>
+                <th>Category</th>
+                <th>Creator</th>
+                <th>Date</th>
+                <th>Commit</th>
+              </tr>
+            </thead>
+            <tbody id="bucketTable"></tbody>
+          </table>
+        </div>
+        <div class="note" id="bucketNote">Select a bar to see repos born in that bucket.</div>
+      </section>
+
+      <section class="panel align-start" style="--delay: 0.45s">
         <div class="chart-header">
           <h2>Project clusters</h2>
           <span class="pill" id="clusterPill">By repo</span>
@@ -481,28 +473,6 @@
         </div>
         <div class="note" id="clusterNote">Load repo metadata to see categories and topics.</div>
       </section>
-
-      <section class="panel" style="--delay: 0.45s">
-        <div class="chart-header">
-          <h2>Bucket detail</h2>
-          <span class="pill" id="bucketPill">None</span>
-        </div>
-        <div class="table">
-          <table>
-            <thead>
-              <tr>
-                <th>Repo</th>
-                <th>Category</th>
-                <th>Creator</th>
-                <th>Date</th>
-                <th>Commit</th>
-              </tr>
-            </thead>
-            <tbody id="bucketTable"></tbody>
-          </table>
-        </div>
-        <div class="note" id="bucketNote">Select a bar to see repos in that bucket.</div>
-      </section>
     </div>
 
     <section class="panel" style="--delay: 0.5s">
@@ -531,7 +501,8 @@
       },
       selection: {
         bucketKey: null
-      }
+      },
+      view: null
     };
 
     const el = {
@@ -540,12 +511,6 @@
       metaSource: document.getElementById("metaSource"),
       metaQuery: document.getElementById("metaQuery"),
       metaCollected: document.getElementById("metaCollected"),
-      dropzone: document.getElementById("dropzone"),
-      fileInput: document.getElementById("fileInput"),
-      pasteInput: document.getElementById("pasteInput"),
-      parseBtn: document.getElementById("parseBtn"),
-      clearBtn: document.getElementById("clearBtn"),
-      loadSampleBtn: document.getElementById("loadSampleBtn"),
       metricSelect: document.getElementById("metricSelect"),
       bucketSelect: document.getElementById("bucketSelect"),
       dateFieldSelect: document.getElementById("dateFieldSelect"),
@@ -563,6 +528,7 @@
       chartPill: document.getElementById("chartPill"),
       axisStart: document.getElementById("axisStart"),
       axisEnd: document.getElementById("axisEnd"),
+      chartNote: document.getElementById("chartNote"),
       creatorTable: document.getElementById("creatorTable"),
       creatorPill: document.getElementById("creatorPill"),
       clusterPill: document.getElementById("clusterPill"),
@@ -585,18 +551,6 @@
     function safeText(value, fallback) {
       const text = String(value || "").trim();
       return text || fallback || "";
-    }
-
-    function parseJsonInput(text) {
-      const trimmed = String(text || "").trim();
-      if (!trimmed) throw new Error("Empty input");
-      try {
-        return JSON.parse(trimmed);
-      } catch (err) {
-        const lines = trimmed.split(/\r?\n/).filter(line => line.trim());
-        if (!lines.length) throw err;
-        return lines.map(line => JSON.parse(line));
-      }
     }
 
     function extractItems(data) {
@@ -936,21 +890,25 @@
       el.categoryTable.innerHTML = "";
       el.topicTable.innerHTML = "";
       el.bucketTable.innerHTML = "";
+      state.selection.bucketKey = null;
+      state.view = null;
       animateNumber(el.statCommits, 0);
       animateNumber(el.statRepos, 0);
       animateNumber(el.statCreators, 0);
       el.statRange.textContent = "-";
       el.axisStart.textContent = "-";
       el.axisEnd.textContent = "-";
-      el.rangeNote.textContent = "Load data to see a 90-day view.";
+      el.chartNote.textContent = "Hover or tap a bar to see that bucket.";
+      el.rangeNote.textContent = "Data loads automatically. Adjust filters to explore.";
       el.clusterNote.textContent = "Load repo metadata to see categories and topics.";
-      el.bucketNote.textContent = "Select a bar to see repos in that bucket.";
+      el.bucketNote.textContent = "Select a bar to see repos born in that bucket.";
       el.bucketPill.textContent = "None";
     }
 
     function renderView() {
       const view = computeView();
       if (!view) return;
+      state.view = view;
       animateNumber(el.statCommits, view.totalCommits);
       animateNumber(el.statRepos, view.uniqueRepos);
       animateNumber(el.statCreators, view.uniqueCreators);
@@ -962,7 +920,9 @@
       el.axisStart.textContent = view.series.length ? view.series[0].label : "-";
       el.axisEnd.textContent = view.series.length ? view.series[view.series.length - 1].label : "-";
 
-      const defaultBucket = state.selection.bucketKey || (view.series.length ? view.series[view.series.length - 1].key : null);
+      const seriesKeys = new Set(view.series.map(point => point.key));
+      const currentBucket = state.selection.bucketKey && seriesKeys.has(state.selection.bucketKey) ? state.selection.bucketKey : null;
+      const defaultBucket = currentBucket || (view.series.length ? view.series[view.series.length - 1].key : null);
       state.selection.bucketKey = defaultBucket;
       renderChart(view.series);
       renderCreators(view.creators);
@@ -971,23 +931,34 @@
       renderBucketDetail(view, defaultBucket);
     }
 
+    function updateChartSelection(bucketKey) {
+      const bars = el.chartBars.querySelectorAll(".bar");
+      bars.forEach(bar => {
+        bar.classList.toggle("selected", bar.dataset.key === bucketKey);
+      });
+    }
+
+    function selectBucket(bucketKey) {
+      if (!state.view || !bucketKey) return;
+      if (state.selection.bucketKey === bucketKey) return;
+      state.selection.bucketKey = bucketKey;
+      updateChartSelection(bucketKey);
+      renderBucketDetail(state.view, bucketKey);
+    }
+
     function renderChart(series) {
       el.chartBars.innerHTML = "";
       const maxValue = Math.max(1, ...series.map(point => point.value));
-      series.forEach((point, index) => {
+      const metricLabel = state.options.metric === "repos" ? "repos born" : "commits";
+      series.forEach((point) => {
         const bar = document.createElement("button");
         bar.className = "bar" + (point.key === state.selection.bucketKey ? " selected" : "");
-        bar.style.height = "0%";
-        bar.style.transitionDelay = (index * 12) + "ms";
-        bar.title = point.label + ": " + point.value;
-        bar.addEventListener("click", () => {
-          state.selection.bucketKey = point.key;
-          renderView();
-        });
+        bar.dataset.key = point.key;
+        bar.title = point.label + ": " + point.value + " " + metricLabel;
+        bar.style.height = maxValue ? (point.value / maxValue) * 100 + "%" : "0%";
+        bar.addEventListener("click", () => selectBucket(point.key));
+        bar.addEventListener("pointerenter", () => selectBucket(point.key));
         el.chartBars.appendChild(bar);
-        requestAnimationFrame(() => {
-          bar.style.height = maxValue ? (point.value / maxValue) * 100 + "%" : "0%";
-        });
       });
     }
 
@@ -999,7 +970,19 @@
         const countCell = document.createElement("td");
         const sampleCell = document.createElement("td");
 
-        nameCell.textContent = item.name;
+        const authorUrl = item.sample
+          ? (item.sample.authorUrl || (item.sample.authorLogin ? "https://github.com/" + item.sample.authorLogin : ""))
+          : "";
+        if (authorUrl && item.name !== "unknown") {
+          const link = document.createElement("a");
+          link.href = authorUrl;
+          link.textContent = item.name;
+          link.target = "_blank";
+          link.rel = "noopener";
+          nameCell.appendChild(link);
+        } else {
+          nameCell.textContent = item.name;
+        }
         countCell.textContent = item.count.toLocaleString("en-US");
         if (item.sample && item.sample.repo) {
           const link = document.createElement("a");
@@ -1081,12 +1064,15 @@
     function renderBucketDetail(view, bucketKey) {
       if (!bucketKey) {
         el.bucketTable.innerHTML = "";
-        el.bucketNote.textContent = "Select a bar to see repos in that bucket.";
+        el.bucketNote.textContent = "Select a bar to see repos born in that bucket.";
         el.bucketPill.textContent = "None";
+        el.chartNote.textContent = "Hover or tap a bar to see that bucket.";
         return;
       }
       state.selection.bucketKey = bucketKey;
-      el.bucketPill.textContent = bucketKey;
+      const bucketMeta = view.series.find(point => point.key === bucketKey);
+      const bucketLabel = bucketMeta ? bucketMeta.label : bucketKey;
+      el.bucketPill.textContent = bucketLabel;
       const bucketRecords = view.metricRecords.filter(record => {
         const key = state.options.bucket === "day"
           ? toDateKeyUTC(record.dateObj)
@@ -1114,7 +1100,18 @@
         repoCell.appendChild(repoLink);
 
         categoryCell.textContent = classifyRepo(record.repoMeta, record);
-        creatorCell.textContent = formatAuthor(record);
+        const authorLabel = formatAuthor(record);
+        const authorUrl = record.authorUrl || (record.authorLogin ? "https://github.com/" + record.authorLogin : "");
+        if (authorUrl && authorLabel !== "unknown") {
+          const link = document.createElement("a");
+          link.href = authorUrl;
+          link.textContent = authorLabel;
+          link.target = "_blank";
+          link.rel = "noopener";
+          creatorCell.appendChild(link);
+        } else {
+          creatorCell.textContent = authorLabel;
+        }
         dateCell.textContent = formatDateShort(record.dateObj);
 
         if (record.commitUrl) {
@@ -1136,10 +1133,13 @@
         el.bucketTable.appendChild(row);
       });
 
+      const metricLabel = state.options.metric === "repos" ? "repos born" : "commits";
+      const countText = bucketRecords.length.toLocaleString("en-US") + " " + metricLabel;
       const note = bucketRecords.length > limit
-        ? "Showing " + limit + " of " + bucketRecords.length + " records in this bucket."
-        : bucketRecords.length + " records in this bucket.";
+        ? bucketLabel + " — " + countText + ". Showing " + limit + " of " + bucketRecords.length.toLocaleString("en-US") + "."
+        : bucketLabel + " — " + countText + ".";
       el.bucketNote.textContent = note;
+      el.chartNote.textContent = bucketLabel + " — " + countText + ".";
     }
 
     function applyFilters() {
@@ -1208,16 +1208,6 @@
       }
     }
 
-    function loadFromText(text) {
-      try {
-        const data = parseJsonInput(text);
-        loadDataObject(data);
-      } catch (err) {
-        setStatus("Parse error: " + err.message, "error");
-        renderEmpty();
-      }
-    }
-
     async function loadFromUrl(url) {
       try {
         setStatus("Loading " + url + "...", "ok");
@@ -1229,81 +1219,6 @@
         setStatus("Auto-load failed: " + err.message, "error");
         renderEmpty();
       }
-    }
-
-    function buildSampleData() {
-      const now = new Date();
-      const authors = ["cursor-cat", "prompt-pilot", "ghost-shipper", "patch-pioneer", "seedling-lab"];
-      const repos = [
-        "cursor-labs/alpha",
-        "cursor-labs/beta",
-        "cursor-labs/gamma",
-        "cursor-labs/delta",
-        "cursor-labs/epsilon",
-        "cursor-labs/zeta",
-        "cursor-labs/eta",
-        "cursor-labs/theta",
-        "cursor-labs/iota",
-        "cursor-labs/kappa"
-      ];
-      const sampleLanguages = ["Swift", "TypeScript", "Python", "Kotlin", "Go", "Rust"];
-      const sampleTopics = [
-        ["ios", "swiftui"],
-        ["web", "react"],
-        ["data", "ml"],
-        ["android", "kotlin"],
-        ["api", "go"],
-        ["cli", "tooling"]
-      ];
-      const commits = [];
-      for (let i = 0; i < 24; i += 1) {
-        const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-        date.setUTCDate(date.getUTCDate() - i * 3);
-        const repo = repos[i % repos.length];
-        const author = authors[i % authors.length];
-        commits.push({
-          repo,
-          repo_url: "https://github.com/" + repo,
-          sha: "sample" + i,
-          commit_url: "https://github.com/" + repo + "/commit/sample" + i,
-          message: "Sure! Pl",
-          author_login: author,
-          author_url: "https://github.com/" + author,
-          author_date: date.toISOString(),
-          committer_date: date.toISOString()
-        });
-      }
-      commits.push({
-        repo: "cursor-labs/alpha",
-        repo_url: "https://github.com/cursor-labs/alpha",
-        sha: "sample-dup",
-        commit_url: "https://github.com/cursor-labs/alpha/commit/sample-dup",
-        message: "Sure! Pl",
-        author_login: "cursor-cat",
-        author_url: "https://github.com/cursor-cat",
-        author_date: new Date(now.getTime() - 2 * 86400000).toISOString(),
-        committer_date: new Date(now.getTime() - 2 * 86400000).toISOString()
-      });
-      const repoMeta = repos.map((fullName, index) => {
-        const language = sampleLanguages[index % sampleLanguages.length];
-        const topics = sampleTopics[index % sampleTopics.length];
-        return {
-          full_name: fullName,
-          html_url: "https://github.com/" + fullName,
-          description: "Sample project " + fullName.split("/")[1],
-          language,
-          topics
-        };
-      });
-      return {
-        meta: {
-          source: "Sample data",
-          query: "\"Sure! Pl\"",
-          collected_at: new Date().toISOString()
-        },
-        commits,
-        repos: repoMeta
-      };
     }
 
     el.metricSelect.addEventListener("change", applyFilters);
@@ -1326,45 +1241,6 @@
     });
     el.downloadSeriesBtn.addEventListener("click", downloadSeries);
     el.downloadNormalizedBtn.addEventListener("click", downloadNormalized);
-
-    el.parseBtn.addEventListener("click", () => loadFromText(el.pasteInput.value));
-    el.clearBtn.addEventListener("click", () => {
-      el.pasteInput.value = "";
-      el.fileInput.value = "";
-      state.records = [];
-      state.repos = new Map();
-      state.meta = {};
-      setStatus("No dataset loaded yet.", "ok");
-      updateMeta({});
-      renderEmpty();
-    });
-    el.loadSampleBtn.addEventListener("click", () => loadDataObject(buildSampleData()));
-
-    el.fileInput.addEventListener("change", async (event) => {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      const text = await file.text();
-      loadFromText(text);
-    });
-
-    ["dragenter", "dragover"].forEach(eventName => {
-      el.dropzone.addEventListener(eventName, (event) => {
-        event.preventDefault();
-        el.dropzone.classList.add("dragover");
-      });
-    });
-    ["dragleave", "drop"].forEach(eventName => {
-      el.dropzone.addEventListener(eventName, (event) => {
-        event.preventDefault();
-        el.dropzone.classList.remove("dragover");
-      });
-    });
-    el.dropzone.addEventListener("drop", async (event) => {
-      const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-      if (!file) return;
-      const text = await file.text();
-      loadFromText(text);
-    });
 
     renderEmpty();
     loadFromUrl(DEFAULT_DATA_URL);
